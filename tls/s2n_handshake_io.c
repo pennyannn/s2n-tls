@@ -1108,6 +1108,15 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_conn_record_state_machine(struct s2n_connection *conn, bool use_tls13) {
+    RESULT_ENSURE_REF(conn);
+
+    conn->handshake.tls13_state_machine = use_tls13;
+    conn->handshake.state_machine_fixed = true;
+
+    return S2N_RESULT_OK;
+}
+
 const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
@@ -1175,6 +1184,11 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
 {
     uint8_t record_type = EXPECTED_RECORD_TYPE(conn);
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+    /* Ensure the state machine referenced is consistent throughout the handshake */
+    if (conn->handshake.state_machine_fixed) {
+        POSIX_ENSURE(IS_TLS13_HANDSHAKE(conn) == conn->handshake.tls13_state_machine, S2N_ERR_STATE_MACHINE_SWITCH);
+    }
 
     /* Populate handshake.io with header/payload for the current state, once.
      * Check wiped instead of s2n_stuffer_data_available to differentiate between the initial call
@@ -1386,8 +1400,14 @@ static S2N_RESULT s2n_handshake_app_data_recv(struct s2n_connection *conn)
  */
 static int s2n_handshake_read_io(struct s2n_connection *conn)
 {
-    uint8_t record_type;
-    uint8_t message_type;
+    POSIX_ENSURE_REF(conn);
+
+    /* Ensure the state machine referenced is consistent throughout the handshake */
+    if (conn->handshake.state_machine_fixed) {
+        POSIX_ENSURE(IS_TLS13_HANDSHAKE(conn) == conn->handshake.tls13_state_machine, S2N_ERR_STATE_MACHINE_SWITCH);
+    }
+
+    uint8_t record_type, message_type = 0;
     int isSSLv2 = 0;
 
     /* Fill conn->in stuffer necessary for the handshake.
