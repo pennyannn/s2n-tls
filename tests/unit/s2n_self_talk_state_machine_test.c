@@ -40,7 +40,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_config, "default"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls12_config, chain_and_key));
 
-        /* A connection cannot switch to the TLS12 state machine after the server hello */
+        /* A connection cannot switch to the TLS12 state machine after the Server Hello */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_STATE_MACHINE_SWITCH);
         }
 
-        /* An early data handshake cannot change state machines */
+        /* An early data handshake cannot change to the TLS12 state machine */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_STATE_MACHINE_SWITCH);
         }
 
-        /* A hello retry handshake cannot change state machines after the HRR message */
+        /* A hello retry handshake cannot change to the TLS12 state machine */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
