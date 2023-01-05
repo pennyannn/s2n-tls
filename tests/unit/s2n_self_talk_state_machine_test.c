@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#define BUFFER_SIZE 100
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -38,21 +40,21 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_config, "default"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls12_config, chain_and_key));
 
-        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server_conn);
-        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
-
-        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client_conn);
-        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
-
-        /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
         /* A connection cannot switch to the TLS12 state machine after the server hello */
         {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            /* Create nonblocking pipes */
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -69,13 +71,23 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_STATE_MACHINE_SWITCH);
         }
 
-        /* A connection cannot switch to the TLS13 state machine after the server hello */
+        /* A connection cannot switch to the TLS13 state machine after the Server Hello */
         {
-            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            /* Create nonblocking pipes */
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_config));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Do handshake until the cert message is reached */
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_CERT));
@@ -90,13 +102,65 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_STATE_MACHINE_SWITCH);
         }
 
-        /* A hello retry handshake cannot change state machines after the HRR message */
+        /* An early data handshake cannot change state machines */
         {
-            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            /* Create nonblocking pipes */
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            const uint8_t test_data[] = "hello world";
+            DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_external_psk_new(), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, test_data, sizeof(test_data)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(test_psk, test_data, sizeof(test_data)));
+            EXPECT_SUCCESS(s2n_psk_configure_early_data(test_psk, UINT32_MAX, 0x13, 0x01));
+    
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+
+            uint8_t actual_payload[BUFFER_SIZE] = { 0 };
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            ssize_t data_size = 0;
+
+            /* Send and receive some early data */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, test_data, sizeof(test_data), &data_size, &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload), &data_size, &blocked), S2N_ERR_IO_BLOCKED);
+
+            /* Alter which state machine the connection is using */
+            client_conn->actual_protocol_version = S2N_TLS12;
+            server_conn->actual_protocol_version = S2N_TLS12;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_STATE_MACHINE_SWITCH);
+        }
+
+        /* A hello retry handshake cannot change state machines after the HRR message */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            /* Create nonblocking pipes */
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
