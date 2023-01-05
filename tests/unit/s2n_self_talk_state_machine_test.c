@@ -23,7 +23,6 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     if (s2n_is_tls13_fully_supported()) {
-
         /* Set up generic TLS13 config */
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
@@ -125,7 +124,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, test_data, sizeof(test_data)));
             EXPECT_SUCCESS(s2n_psk_set_secret(test_psk, test_data, sizeof(test_data)));
             EXPECT_SUCCESS(s2n_psk_configure_early_data(test_psk, UINT32_MAX, 0x13, 0x01));
-    
+
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
 

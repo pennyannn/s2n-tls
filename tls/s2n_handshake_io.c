@@ -1108,7 +1108,8 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_conn_record_state_machine(struct s2n_connection *conn, bool use_tls13) {
+S2N_RESULT s2n_conn_record_state_machine(struct s2n_connection *conn, bool use_tls13)
+{
     RESULT_ENSURE_REF(conn);
 
     conn->handshake.tls13_state_machine = use_tls13;
