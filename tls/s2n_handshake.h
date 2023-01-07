@@ -82,6 +82,12 @@ typedef enum {
     S2N_ASYNC_COMPLETE,
 } s2n_async_state;
 
+typedef enum {
+    S2N_STATE_MACHINE_INITIAL = 0,
+    S2N_STATE_MACHINE_TLS12,
+    S2N_STATE_MACHINE_TLS13,
+} s2n_state_machine;
+
 struct s2n_handshake_parameters {
     /* Public keys for server / client */
     struct s2n_pkey server_public_key;
@@ -185,11 +191,7 @@ struct s2n_handshake {
     /* Indicates that this is a renegotiation handshake */
     unsigned renegotiation : 1;
 
-    /* Indicates which state machine is being used */
-    unsigned tls13_state_machine : 1;
-
-    /* Indicates the state machine has been set */
-    unsigned state_machine_fixed : 1;
+    s2n_state_machine state_machine;
 };
 
 /* Only used in our test cases. */
@@ -212,7 +214,7 @@ bool s2n_handshake_is_renegotiation(struct s2n_connection *conn);
 /* s2n_handshake_io */
 int s2n_conn_set_handshake_type(struct s2n_connection *conn);
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
-S2N_RESULT s2n_conn_record_state_machine(struct s2n_connection *conn, bool use_tls13);
+S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t protocol_version);
 
 /* s2n_handshake_transcript */
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);

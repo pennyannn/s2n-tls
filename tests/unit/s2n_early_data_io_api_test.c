@@ -121,6 +121,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_psk_set_identity(test_psk_without_early_data, test_data, sizeof(test_data)));
     EXPECT_SUCCESS(s2n_psk_set_secret(test_psk_without_early_data, test_data, sizeof(test_data)));
 
+    /* This psk is used to test cases where a psk is appended but not sent in the Client Hello.
+     * The psk will not be sent if the connection it's appended to doesn't have the same application protocol configured. 
+     */
     DEFER_CLEANUP(struct s2n_psk *test_psk_with_wrong_early_data = s2n_external_psk_new(), s2n_psk_free);
     EXPECT_SUCCESS(s2n_psk_set_identity(test_psk_with_wrong_early_data, test_data, sizeof(test_data)));
     EXPECT_SUCCESS(s2n_psk_set_secret(test_psk_with_wrong_early_data, test_data, sizeof(test_data)));
