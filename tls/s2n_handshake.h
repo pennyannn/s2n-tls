@@ -82,6 +82,12 @@ typedef enum {
     S2N_ASYNC_COMPLETE,
 } s2n_async_state;
 
+/* Indicates which state machine is being used. The handshake
+ * starts off on the initial enum, which indicates we're using
+ * the TLS12 state machine. Once the handshake version is determined
+ * the enum is set to either the TLS12 or TLS13 state machine.
+ * This works because the initial entries in both the TLS12 and 
+ * TLS13 state machines are the same. */
 typedef enum {
     S2N_STATE_MACHINE_INITIAL = 0,
     S2N_STATE_MACHINE_TLS12,

@@ -1117,6 +1117,7 @@ S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t pr
         RESULT_ENSURE_NE(conn->handshake.state_machine, S2N_STATE_MACHINE_TLS12);
         conn->handshake.state_machine = S2N_STATE_MACHINE_TLS13;
     } else {
+        /* State machine should not change once set */
         RESULT_ENSURE_NE(conn->handshake.state_machine, S2N_STATE_MACHINE_TLS13);
         conn->handshake.state_machine = S2N_STATE_MACHINE_TLS12;
     }
