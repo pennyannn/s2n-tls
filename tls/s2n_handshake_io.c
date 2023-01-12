@@ -1016,6 +1016,8 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
+    POSIX_GUARD_RESULT(s2n_conn_choose_state_machine(conn, conn->actual_protocol_version));
+
     if (IS_TLS13_HANDSHAKE(conn)) {
         POSIX_GUARD_RESULT(s2n_conn_set_tls13_handshake_type(conn));
         return S2N_SUCCESS;
@@ -1112,7 +1114,7 @@ S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t pr
 {
     RESULT_ENSURE_REF(conn);
 
-    /* This shouldn't be called before we know what version we're on */
+    /* This should never be called before we know what version we're on */
     RESULT_ENSURE_NE(protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
 
     if (protocol_version == S2N_TLS13) {
