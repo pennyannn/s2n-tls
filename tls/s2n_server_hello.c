@@ -270,7 +270,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_server_hello_parse(conn));
 
     conn->actual_protocol_version_established = 1;
-    POSIX_GUARD_RESULT(s2n_conn_choose_state_machine(conn, conn->actual_protocol_version));
 
     POSIX_GUARD(s2n_conn_set_handshake_type(conn));
 
