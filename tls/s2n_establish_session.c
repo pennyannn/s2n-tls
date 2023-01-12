@@ -35,6 +35,7 @@ int s2n_establish_session(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));
+    POSIX_GUARD_RESULT(s2n_conn_choose_state_machine(conn, conn->actual_protocol_version));
     POSIX_GUARD(s2n_conn_set_handshake_type(conn));
 
     if (conn->client_hello_version != S2N_SSLv2) {

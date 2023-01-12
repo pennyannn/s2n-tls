@@ -423,8 +423,6 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
 
-    POSIX_GUARD_RESULT(s2n_conn_choose_state_machine(conn, conn->actual_protocol_version));
-
     if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
         POSIX_GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         POSIX_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);

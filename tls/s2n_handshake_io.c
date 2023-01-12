@@ -1112,6 +1112,9 @@ S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t pr
 {
     RESULT_ENSURE_REF(conn);
 
+    /* This shouldn't be called before we know what version we're on */
+    RESULT_ENSURE_NE(protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
+
     if (protocol_version == S2N_TLS13) {
         /* State machine should not change once set */
         RESULT_ENSURE_NE(conn->handshake.state_machine, S2N_STATE_MACHINE_TLS12);
